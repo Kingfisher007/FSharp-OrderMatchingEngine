@@ -27,6 +27,7 @@ module MatchingEngine =
     // Result of procesing new order request
     type OrderBookResponse =
         | Filled of timestamp : DateTime * Price : double * Quantity : int * Orders : Order list
+        | PartiallyFilled of timestamp : DateTime * Price : double * Quantity : int * Orders : Order list
         | Acknowledged of timestamp : DateTime * Request : OrderBookRequest
         | Rejected of timestamp : DateTime * Reason : String * Request : OrderBookRequest
         | Cancelled of timestamp : DateTime * Reason : string * Request : OrderBookRequest
@@ -85,7 +86,7 @@ module MatchingEngine =
     // Recursively match the order with existing orders from opposite queue
     let rec matchOrder order (queue:SortedSet<Order>) orderBook volumeSoFar (matchedOrders:Order list) =
         match queue.Count with
-        | 0 -> Filled(DateTime.Now, order.Price.Value, volumeSoFar, matchedOrders)
+        | 0 -> PartiallyFilled(DateTime.Now, order.Price.Value, volumeSoFar, matchedOrders)
         | _ ->  let top = queue.Max
                 if(order.Quantity < top.Quantity) then
                     let newQuantity = top.Quantity - order.Quantity
@@ -150,6 +151,7 @@ module MatchingEngine =
     let printOrderBookResult obr =
         match obr with
         | Filled (time, price, quantity, orders) -> sprintf "Filled - Price - %f; Quantity - %i; Orders - {%s}" price quantity (orders |> List.fold concat "")
+        | PartiallyFilled (time, price, quantity, orders) -> sprintf "Partially Filled - Price - %f; Quantity - %i; Orders - {%s}" price quantity (orders |> List.fold concat "")
         | Acknowledged (time, _)  -> sprintf "Acknowledged"
         | Cancelled (time, reason, _) -> sprintf "Cancelled - %s" reason
         | Rejected (time, reason, _) -> sprintf "Rejected - %s" reason
